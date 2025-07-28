@@ -14,6 +14,8 @@ Validated external script integrity (e.g., via SHA256 or trusted sources)
 Disabled verbose PHP error display
 Enabled PHP error logging and disabled allow_url_fopen
 Removed empty MySQL password and root usage
+
+
 ⚙️ Laravel Application Fixes
 Protected /users API route with authentication middleware
 Removed hardcoded admin credentials from seeders

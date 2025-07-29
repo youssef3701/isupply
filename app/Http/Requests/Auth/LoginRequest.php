@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -40,32 +41,26 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(): void
     {
-        // $this->ensureIsNotRateLimited();
+        //  Re-enabled rate limiting
+        $this->ensureIsNotRateLimited();
 
-        // Retrieve email and password directly from the request
         $email = $this->string('email');
         $password = $this->password;
 
-        $user = DB::select("SELECT * FROM users WHERE email = '" . $email . "' LIMIT 1");
+        // Fixed: Parameterized query to prevent SQL injection
+        $user = DB::select("SELECT * FROM users WHERE email = ? LIMIT 1", [$email]);
 
-        // DB::select returns an array of objects, so we need to check if any user was found
-        $foundUser = count($user) > 0 ? (object)$user[0] : null; // Cast to object for consistent property access
+        // Handle result
+        $foundUser = count($user) > 0 ? (object)$user[0] : null;
 
-        if ($foundUser) {
-            logger("Provided Password for user {$email}: {$password}");
-            logger("Found User Password: {$foundUser->password}");
+        if ($foundUser && Hash::check($password, $foundUser->password)) {
+            //  Login the user securely
             Auth::loginUsingId($foundUser->id, $this->boolean('remember'));
-            if ($password == $foundUser->password) {
-                RateLimiter::clear($this->throttleKey());
-            } else {
-                RateLimiter::hit($this->throttleKey());
-                throw ValidationException::withMessages([
-                    'email' => trans('auth.failed'),
-                ]);
-            }
-
+            RateLimiter::clear($this->throttleKey());
         } else {
+            //  Secure failed attempt
             RateLimiter::hit($this->throttleKey());
+
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);

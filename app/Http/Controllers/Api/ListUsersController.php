@@ -14,10 +14,10 @@ class ListUsersController extends Controller
      */
     public function __invoke(Request $request)
     {
-        // ✅ Authorization: only allow users with permission to view users
+        // Authorization: only allow users with permission to view users
         $this->authorize('viewAny', User::class);
 
-        // ✅ Input validation: prevent abuse and long wildcards
+        // Input validation: prevent abuse and long wildcards
         $request->validate([
             'query' => 'nullable|string|max:100',
         ]);
